@@ -1,0 +1,26 @@
+namespace :whenever do
+  desc 'Clears crontab and runs whenever'
+  task :reset do
+    on roles(:app) do
+      if remote_file_exists? "#{current_path}/config/schedule.rb"
+        within current_path do
+          with rails_env: fetch(:rails_env) do
+            env = "--set environment=#{fetch(:rails_env)}"
+            execute :bundle, :exec, :"whenever --update-crontab #{fetch(:whenever_identifier)} #{env}"
+          end
+        end
+      end
+    end
+  end
+
+  desc 'Clears crontab and runs whenever for backup'
+  task :backup_reset do
+    on roles(:app) do
+      if remote_file_exists? "#{fetch(:deploy_backup_to) || "#{fetch(:deploy_to)}_backup"}/config/schedule.rb"
+        within fetch(:deploy_backup_to) do
+          execute :bundle, :exec, :"whenever --update-crontab #{fetch(:backup_whenever_identifier)}"
+        end
+      end
+    end
+  end
+end

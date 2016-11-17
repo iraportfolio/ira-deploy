@@ -1,0 +1,19 @@
+#
+# Don't forget to setup sidekiq assets linked dir:
+# `set :linked_dirs, fetch(:linked_dirs) + %w{public/sidekiq}`
+# and specify `set :has_sidekiq_assets, true`
+# for right nginx template generation
+#
+desc 'Sidekiq specific custom tasks'
+namespace :sidekiq do
+  namespace :assets do
+    desc 'Link assets to app public folder'
+    task :setup do
+      on roles(:app) do
+        path_to_gem = within(current_path) { capture :bundle, 'show sidekiq' }
+        inside_gem_path = 'web/assets/*'
+        execute :ln, "-sf #{path_to_gem}/#{inside_gem_path} #{shared_path}/public/sidekiq"
+      end
+    end
+  end
+end

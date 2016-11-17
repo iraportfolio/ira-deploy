@@ -1,0 +1,43 @@
+namespace :foreman do
+  desc 'Export the Procfile to Ubuntu\'s upstart scripts'
+  task :export do
+    on roles(:app) do
+      "worker=#{fetch(:foreman_worker, 1)}" unless fetch(:foreman_worker).to_s.empty?
+
+      bundle_path = "/home/#{roles(:web).first.user}/.rbenv/shims/bundle"
+      init_params = "-f #{current_path}/Procfile -a #{application} -u #{roles(:web).first.user} -l #{shared_path}/log"
+      procfile = "/etc/init #{init_params}"
+      execute "cd #{current_path} && sudo #{bundle_path} exec foreman export upstart #{procfile}"
+    end
+  end
+
+  desc 'Start the application services'
+  task :start do
+    on roles(:app) do
+      execute "sudo start #{application}"
+    end
+  end
+
+  desc 'Stop the application services'
+  task :stop do
+    on roles(:app) do
+      execute "sudo stop #{application}"
+    end
+  end
+
+  desc 'Restart the application services'
+  task :restart do
+    on roles(:app) do
+      execute "sudo start #{application} || sudo restart #{application}"
+    end
+  end
+
+  desc 'Display logs for a certain process - arg example: PROCESS=web-1'
+  task :logs do
+    on roles(:app) do
+      logfilename = ENV['PROCESS'] || 'production'
+      # This should be something different (like in heroku-toolbelt)
+      execute :tail, current_path.join("log/#{logfilename}.log"), '-f', '-n 100'
+    end
+  end
+end

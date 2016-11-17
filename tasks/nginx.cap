@@ -1,0 +1,11 @@
+desc 'Nginx configuration'
+namespace :nginx do
+  desc 'Restart nginx'
+  %w{start stop restart}.each do |cmd|
+    task cmd.to_sym do
+      on roles(:app) do
+        execute "sudo service nginx #{cmd}"
+      end
+    end
+  end
+end

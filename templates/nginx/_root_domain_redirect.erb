@@ -1,0 +1,13 @@
+# non www to www
+# server {
+#   listen 80;
+#   server_name <%= fetch(:domain) %>;
+#   return 301 http://www.<%= fetch(:domain) %>$request_uri;
+# }
+
+# www to non www
+# server {
+#   listen 80;
+#   server_name www.<%= fetch(:domain) %>;
+#   return 301 http://<%= fetch(:domain) %>$request_uri;
+# }

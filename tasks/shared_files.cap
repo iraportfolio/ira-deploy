@@ -1,0 +1,104 @@
+en = {
+  file_already_exists: '[%{host}] File already exists: %{file}',
+  shared_file_generator: '[%{host}] Creating file: %{file}'
+}
+I18n.backend.store_translations(:en, capistrano: en)
+
+desc 'Shared project files'
+namespace :shared_files do
+  task :setup do
+    invoke 'shared_files:env'
+    invoke 'shared_files:database'
+    invoke 'shared_files:nginx'
+    invoke 'shared_files:puma'
+    invoke 'shared_files:ssl' if fetch(:ssl_enabled, false)
+    invoke 'shared_files:apn_certificate' if fetch(:apple_push_notifications_enabled, false)
+    invoke 'shared_files:robots.txt' if fetch(:generate_robots_txt, true)
+  end
+
+  desc 'Generate .env file'
+  task :env do
+    on roles(:app) do |host|
+      execute :mkdir, "-pv #{shared_path}"
+      file = "#{shared_path}/.env"
+      info t(:shared_file_generator, file: file, host: host)
+
+      render_template_file 'env.erb', file
+    end
+  end
+
+  desc 'Generate database.yml'
+  task :database do
+    on roles(:db) do |host|
+      execute :mkdir, "-pv #{shared_path}/config"
+      file = "#{shared_path}/config/database.yml"
+      info t(:shared_file_generator, file: file, host: host)
+
+      render_template_file 'database.yml.erb', file
+    end
+  end
+
+  desc 'Generate nginx config for app'
+  task :nginx do
+    on roles(:app) do |host|
+      execute :mkdir, "-pv #{shared_path}/config"
+      file = "#{shared_path}/config/application.conf"
+      info t(:shared_file_generator, file: file, host: host)
+
+      render_template_file 'app.conf.erb', file
+      execute "sudo ln -nfs #{file} /etc/nginx/conf.d/#{fetch(:application)}.conf"
+    end
+  end
+
+  desc 'Setup ssl certificates for app'
+  task :ssl do
+    on roles(:app) do |host|
+      execute :mkdir, "-pv #{shared_path}/ssl"
+      %w(pem key).each do |extension|
+        upload_path = "#{shared_path}/ssl/certificate.#{extension}"
+        file = File.open("#{fetch(:app_folder)}/files/#{fetch(:stage)}/ssl/certificate.#{extension}")
+        upload! file, upload_path
+      end
+
+      dhparam_path = "#{fetch(:app_folder)}/files/#{fetch(:stage)}/ssl/dhparam.pem"
+      if File.file?(dhparam_path)
+        upload! File.open(dhparam_path), "#{shared_path}/ssl/dhparam.pem"
+      end
+    end
+  end
+
+  desc 'Setup Apple Push Notifications certificates for app'
+    task :apn_certificate do
+      on roles(:app) do |host|
+        execute :mkdir, "-pv #{shared_path}/apn"
+        upload_path = "#{shared_path}/apn/certificate.pem"
+        file = File.open("#{fetch(:app_folder)}/files/#{fetch(:stage)}/apn/certificate.pem")
+        upload! file, upload_path
+
+        execute :ln, "-sf #{shared_path}/apn #{current_path}/config"
+      end
+    end
+
+  desc 'Generate puma config for app'
+  task :puma do
+    on roles(:app) do |host|
+      execute :mkdir, "-pv #{shared_path}/config"
+      file = "#{shared_path}/config/puma.rb"
+      info t(:shared_file_generator, file: file, host: host)
+      render_template_file 'puma.rb.erb', file
+    end
+  end
+
+  desc 'Generate robots.txt file'
+  task :'robots.txt' do
+    on roles(:app) do |host|
+      file = "#{shared_path}/public/robots.txt"
+      template = -> (access) { access ? 'permit_robots.txt.erb' : 'refuse_robots.txt.erb' }
+      execute :mkdir, '-pv', "#{shared_path}/public"
+      info t(:shared_file_generator, file: file, host: host)
+
+      render_template_file template.call(fetch(:allow_robots_access, false)), file
+      execute :chmod, '664', file
+    end
+  end
+end

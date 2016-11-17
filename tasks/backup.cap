@@ -1,0 +1,90 @@
+namespace :backup do
+  desc 'Setup backup'
+  task :setup do
+    invoke 'backup:init'
+    invoke 'backup:schedule'
+  end
+
+  desc 'Create backup project'
+  task :init do
+    invoke 'backup:link_env'
+    invoke 'backup:copy_gemfile'
+    invoke 'backup:bundle_install'
+    invoke 'backup:generate_config'
+  end
+
+  desc 'Create backup project dir and symlink .env'
+  task :link_env do
+    on roles(:app) do
+      execute :mkdir, '-p', fetch(:deploy_backup_to)
+      within fetch(:deploy_backup_to) do
+        execute :ln, '-sfn', "#{shared_path}/.env .env"
+      end
+    end
+  end
+
+  desc 'Copy gem files inside backup project'
+  task :copy_gemfile do
+    on roles(:app) do |host|
+      file = "#{fetch(:deploy_backup_to)}/Gemfile"
+      info t(:shared_file_generator, file: file, host: host)
+      render_template_file 'backup/Gemfile.erb', file
+
+      file = "#{fetch(:deploy_backup_to)}/Gemfile.lock"
+      info t(:shared_file_generator, file: file, host: host)
+      render_template_file 'backup/Gemfile.lock.erb', file
+    end
+  end
+
+  desc 'Generate backup config'
+  task :generate_config do
+    on roles(:app) do |host|
+      execute :mkdir, "-pv #{fetch(:deploy_backup_to)}/config"
+      file = "#{fetch(:deploy_backup_to)}/config/backup.rb"
+      info t(:shared_file_generator, file: file, host: host)
+      render_template_file 'backup/backup.rb.erb', file
+    end
+  end
+
+  desc 'Generate backup schedule'
+  task :schedule do
+    on roles(:app) do |host|
+      execute :mkdir, "-pv #{fetch(:deploy_backup_to)}/config"
+      file = "#{fetch(:deploy_backup_to)}/config/schedule.rb"
+      info t(:shared_file_generator, file: file, host: host)
+      render_template_file 'backup/schedule.rb.erb', file
+      invoke 'whenever:backup_reset'
+    end
+  end
+
+  desc 'Setup gems for backup project'
+  task :bundle_install do
+    on roles(:app) do
+      within fetch(:deploy_backup_to) do
+        execute :>, '.gemrc'
+        execute :echo, '\'gem: --no-rdoc --no-ri\' >> .gemrc'
+        execute :bundle, 'install'
+      end
+    end
+  end
+
+  desc 'Run backup database'
+  task :run do
+    on roles(:app) do
+      within fetch(:deploy_backup_to) do
+        config_file = "--config-file #{fetch(:deploy_backup_to)}/config/backup.rb"
+        execute :bundle, :exec, "backup perform -t #{fetch(:backup_model_name)} #{config_file}"
+      end
+    end
+  end
+
+  desc 'Remove backup project'
+  task :remove do
+    on roles(:app) do
+      within fetch(:deploy_backup_to) do
+        execute :bundle, :exec, :"whenever --clear-crontab #{fetch(:backup_whenever_identifier)}"
+      end
+      execute :rm, '-rf', fetch(:deploy_backup_to)
+    end
+  end
+end

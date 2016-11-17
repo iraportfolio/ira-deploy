@@ -1,0 +1,34 @@
+namespace :foreman_systemd do
+  desc 'Export the Procfile to Ubuntu\'s systemd scripts'
+  task :export do
+    on roles(:app) do
+      "worker=#{fetch(:foreman_worker, 1)}" unless fetch(:foreman_worker).to_s.empty?
+
+      bundle_path = "/home/#{roles(:web).first.user}/.rbenv/shims/bundle"
+      init_params = "-f #{current_path}/Procfile -a #{application} -u #{roles(:web).first.user} -l #{shared_path}/log"
+      procfile = "/etc/systemd/system #{init_params}"
+      execute "cd #{current_path} && sudo #{bundle_path} exec foreman export systemd #{procfile} && sudo systemctl daemon-reload && sudo systemctl enable #{application}.target"
+    end
+  end
+
+  desc 'Start the application services'
+  task :start do
+    on roles(:app) do
+      execute "sudo systemctl start #{application}.target"
+    end
+  end
+
+  desc 'Stop the application services'
+  task :stop do
+    on roles(:app) do
+      execute "sudo systemctl stop #{application}.target"
+    end
+  end
+
+  desc 'Restart the application services'
+  task :restart do
+    on roles(:app) do
+      execute "sudo systemctl restart #{application}.target"
+    end
+  end
+end

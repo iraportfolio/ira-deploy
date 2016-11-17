@@ -1,0 +1,6 @@
+.bundle
+.idea
+.DS_Store
+*.swp
+*.log
+*.rspec

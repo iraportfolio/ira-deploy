@@ -1,0 +1,11 @@
+<%= "#{current_path}/log/*.log" %> {
+  daily
+  maxsize 100M
+  missingok
+  notifempty
+  rotate 14
+  compress
+  delaycompress
+  copytruncate
+  nodateext
+}

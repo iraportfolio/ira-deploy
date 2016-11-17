@@ -1,0 +1,40 @@
+# Backup v4.x Configuration
+# !DO NOT REMOVE LINE ABOVE!
+
+# For more information about Backup's components, see the documentation at:
+# http://meskyanichi.github.io/backup
+
+# Default backup config for Postgres DB and Amazon S3 Storage
+require 'dotenv'
+Dotenv.load
+
+Model.new('<%= fetch(:backup_model_name) %>', 'Backup <%= fetch(:application) %> DB to Amazon S3') do
+
+  ##
+  # PostgreSQL [Database]
+  #
+  database PostgreSQL do |db|
+    db.name = ENV['DATABASE_NAME']
+    db.username = ENV['DATABASE_USERNAME']
+    db.password = ENV['DATABASE_PASSWORD']
+    db.host = ENV['DATABASE_HOST']
+    db.port = ENV['DATABASE_PORT']
+    db.additional_options = ["-xc", "-E=utf8"]
+  end
+
+  ##
+  # Amazon Simple Storage Service [Storage]
+  #
+  store_with S3 do |s3|
+    s3.access_key_id = ENV['AWS_BACKUP_ACCESS_KEY_ID']
+    s3.secret_access_key = ENV['AWS_BACKUP_SECRET_ACCESS_KEY']
+    s3.region = ENV['AWS_BACKUP_REGION'] #"us-east-1"
+    s3.bucket = ENV['AWS_BACKUP_BUCKET']
+    s3.path = ENV['AWS_BACKUP_PATH'].dup
+  end
+
+  ##
+  # Gzip [Compressor]
+  #
+  compress_with Gzip
+end

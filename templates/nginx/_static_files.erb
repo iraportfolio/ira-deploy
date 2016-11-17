@@ -1,0 +1,17 @@
+  if ($request_method !~ ^(GET|HEAD|PATCH|PUT|POST|DELETE|OPTIONS)$ ){
+    return 405;
+  }
+
+  location = /50x.html {
+    root html;
+  }
+
+  location = /404.html {
+    root html;
+  }
+
+  location ~* ^.+\.(js|css|jpg|jpeg|gif|png|ico|svg|pdf|ppt|txt|rtf|woff|woff2|otf)$ {
+    access_log off;
+    expires 1M;
+    add_header Cache-Control public;
+  }

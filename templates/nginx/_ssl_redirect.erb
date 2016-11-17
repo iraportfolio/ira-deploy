@@ -1,0 +1,7 @@
+<% if fetch(:ssl_enabled, false) %>
+  # for https
+  server {
+    listen 80;
+    rewrite ^(.*) https://$host$1 permanent;
+  }
+<% end %>

@@ -1,0 +1,3 @@
+upstream <%= fetch(:application) %> {
+  server unix:<%= shared_path %>/tmp/sockets/puma.sock fail_timeout=0;
+}

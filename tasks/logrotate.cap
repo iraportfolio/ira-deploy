@@ -1,0 +1,18 @@
+LOGROTATE_USER='root'
+LOGROTATE_PERM='600'
+desc 'Logrotate tasks'
+namespace :logrotate do
+  desc 'Setup logrotate configuration'
+  task :setup do
+    on roles(:app) do
+      destination = "/etc/logrotate.d/#{fetch(:application)}.conf"
+      tmp_file = "/tmp/logrotate_#{fetch(:application)}"
+      render_template_file 'logrotate.conf.erb', tmp_file
+      execute :sudo, :mv, tmp_file, destination
+      execute :sudo, :chown, LOGROTATE_USER, destination
+      execute :sudo, :chmod, LOGROTATE_PERM, destination
+      execute :sudo, :cp, '/etc/cron.daily/logrotate', '/etc/cron.hourly/logrotate'
+    end
+  end
+end
+

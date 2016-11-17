@@ -1,0 +1,11 @@
+<%= render_partial 'nginx/_upstreams' %>
+<%= render_partial 'nginx/_ssl_redirect' %>
+server {
+<%= render_partial 'nginx/_ssl_support' %>
+<%= render_partial 'nginx/_app_conf' %>
+<%= render_partial 'nginx/_server_params' %>
+<%= render_partial 'nginx/_server_error_page' %>
+<%= render_partial 'nginx/_static_files' %>
+<%= render_partial 'nginx/_compression_conf' %>
+}
+<%= render_partial 'nginx/_root_domain_redirect' %>

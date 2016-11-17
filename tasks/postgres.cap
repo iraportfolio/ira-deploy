@@ -1,0 +1,32 @@
+desc 'Postgres configuration'
+namespace :postgres do
+  task :setup do
+    invoke 'postgres:create_user'
+    invoke 'postgres:create_db'
+  end
+
+  desc 'Create user'
+  task :create_user do
+    on roles(:db) do
+      ask :database_username, fetch(:application)
+      execute "sudo -u postgres createuser #{fetch(:database_username)} -D -e"
+    end
+    invoke 'postgres:restart_db'
+  end
+
+  desc 'Create DB'
+  task :create_db do
+    on roles(:db) do
+      ask :database_username, fetch(:application)
+      ask :database_name, "#{fetch(:application)}_#{fetch(:app_stage)}"
+      execute "sudo -u postgres createdb -O #{fetch(:database_username)} #{fetch(:database_name)}"
+    end
+    invoke 'postgres:restart_db'
+  end
+
+  task :restart_db do
+    on roles(:db) do
+      execute 'sudo service postgresql restart'
+    end
+  end
+end
